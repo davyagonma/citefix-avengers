@@ -1,24 +1,70 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Eye, EyeOff } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { toast } from "@/hooks/use-toast"; // Adaptez selon votre système de toast
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement login logic
-    console.log("Login attempt:", { email, password });
-    setTimeout(() => setIsLoading(false), 1000);
+
+    try {
+      interface LoginResponse {
+        token: string;
+        user: {
+          nom: string;
+          email: string;
+          prenom: string;
+          role: string;
+          _id: string;
+        };
+      }
+
+      const response = await axios.post<LoginResponse>("http://localhost:3000/api/auth/login", {
+        email,
+        password
+      });
+
+      // Stockage du token et des données utilisateur
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+      localStorage.setItem('userId', response.data.user._id);
+
+      // Notification de succès
+      toast({
+        title: "Connexion réussie",
+        description: `Bienvenue, ${response.data.user.prenom} !`,
+      });
+
+      // Redirection après connexion
+      navigate("/profil"); // Adaptez selon votre besoin
+
+    } catch (error) {
+      let errorMessage = "Erreur lors de la connexion";
+      
+      // if (axios.isAxiosError(error)) {
+      //   errorMessage = error.response?.data?.message || errorMessage;
+      // }
+
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

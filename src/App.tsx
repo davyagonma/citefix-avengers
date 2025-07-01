@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +19,8 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import GestionSignalements from "./pages/admin/GestionSignalements";
 import GestionUtilisateurs from "./pages/admin/GestionUtilisateurs";
 import NotFound from "./pages/NotFound";
+import { ToastProvider } from "@/components/ui/toast";
+import { ToastViewport } from "@/components/ui/toast";
 
 const queryClient = new QueryClient();
 
@@ -28,27 +29,32 @@ const App = () => (
     <LanguageProvider>
       <AuthProvider>
         <TooltipProvider>
+          {/* Configuration des toasts */}
+          <ToastProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin/signalements" element={<GestionSignalements />} />
+                <Route path="/admin/utilisateurs" element={<GestionUtilisateurs />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/signaler" element={<Signaler />} />
+                <Route path="/carte" element={<Carte />} />
+                <Route path="/a-propos" element={<APropos />} />
+                <Route path="/paiement" element={<Paiement />} />
+                <Route path="/profil" element={<Profil />} />
+                <Route path="/mes-signalements" element={<MesSignalements />} />
+                <Route path="/notifications" element={<Notifications />} />
+                {/*<Route path="*" element={<NotFound />} />*/}
+              </Routes>
+            </BrowserRouter>
+            <ToastViewport />
+          </ToastProvider>
+          
+          {/* Autres fournisseurs de notification */}
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/signalements" element={<GestionSignalements />} />
-              <Route path="/admin/utilisateurs" element={<GestionUtilisateurs />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/signaler" element={<Signaler />} />
-              <Route path="/carte" element={<Carte />} />
-              <Route path="/a-propos" element={<APropos />} />
-              <Route path="/paiement" element={<Paiement />} />
-              <Route path="/profil" element={<Profil />} />
-              <Route path="/mes-signalements" element={<MesSignalements />} />
-              <Route path="/notifications" element={<Notifications />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              {/*<Route path="*" element={<NotFound />} />*/}
-            </Routes>
-          </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
     </LanguageProvider>

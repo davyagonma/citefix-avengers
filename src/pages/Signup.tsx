@@ -1,13 +1,18 @@
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { AuthService } from "@/services/authService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MapPin, Eye, EyeOff, User, Mail, Phone } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import axios, { AxiosError } from "axios";
 
 const Signup = () => {
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -16,34 +21,153 @@ const Signup = () => {
     password: "",
     confirmPassword: ""
   });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
   };
 
   const handleTermsChange = (checked: boolean | "indeterminate") => {
     setAcceptTerms(checked === true);
   };
 
+  const validateForm = () => {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.password) {
+      toast({
+        title: "Erreur",
+        description: "Tous les champs sont obligatoires",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez entrer une adresse email valide",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!/^\+?\d{8,15}$/.test(formData.phone)) {
+      toast({
+        title: "Erreur",
+        description: "Numéro de téléphone invalide",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (formData.password.length < 8) {
+      toast({
+        title: "Erreur",
+        description: "Le mot de passe doit contenir au moins 8 caractères",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!/(?=.*[A-Z])/.test(formData.password)) {
+      toast({
+        title: "Erreur",
+        description: "Le mot de passe doit contenir au moins une majuscule",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!/(?=.*\d)/.test(formData.password)) {
+      toast({
+        title: "Erreur",
+        description: "Le mot de passe doit contenir au moins un chiffre",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Erreur",
+        description: "Les mots de passe ne correspondent pas",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!acceptTerms) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez accepter les conditions d'utilisation",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) {
-      alert("Les mots de passe ne correspondent pas");
-      return;
-    }
-    if (!acceptTerms) {
-      alert("Veuillez accepter les conditions d'utilisation");
-      return;
-    }
     
+    if (!validateForm()) return;
+
     setIsLoading(true);
-    // TODO: Implement signup logic
-    console.log("Signup attempt:", formData);
-    setTimeout(() => setIsLoading(false), 1000);
+
+    try {
+      const userData = {
+        email: formData.email,
+        password: formData.password,
+        nom: formData.lastName,
+        prenom: formData.firstName,
+        telephone: formData.phone,
+        role: "citoyen",
+        verification: {
+          emailVerifie: false,
+          telephoneVerifie: false,
+          documentsVerifies: false
+        },
+        adresse: {
+          rue: "",
+          quartier: "",
+          ville: "",
+          commune: "",
+          coordonnees: {
+            type: "Point",
+            coordinates: [0, 0]
+          }
+        }
+      };
+
+      await AuthService.signup(userData);
+
+      toast({
+        title: "Succès",
+        description: "Compte créé avec succès!",
+      });
+
+      navigate('/login');
+      
+    } catch (error) {
+      let errorMessage = "Une erreur est survenue lors de l'inscription";
+
+      if (error instanceof AxiosError) {
+        errorMessage = error.response?.data?.error || errorMessage;
+      }
+
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -74,7 +198,7 @@ const Signup = () => {
                   id="firstName"
                   placeholder="Votre prénom"
                   value={formData.firstName}
-                  onChange={(e) => handleInputChange("firstName", e.target.value)}
+                  onChange={handleInputChange}
                   required
                 />
               </div>
@@ -84,12 +208,12 @@ const Signup = () => {
                   id="lastName"
                   placeholder="Votre nom"
                   value={formData.lastName}
-                  onChange={(e) => handleInputChange("lastName", e.target.value)}
+                  onChange={handleInputChange}
                   required
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -97,11 +221,11 @@ const Signup = () => {
                 type="email"
                 placeholder="votre@email.com"
                 value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
+                onChange={handleInputChange}
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="phone">Téléphone</Label>
               <Input
@@ -109,11 +233,11 @@ const Signup = () => {
                 type="tel"
                 placeholder="+229 XX XX XX XX"
                 value={formData.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
+                onChange={handleInputChange}
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Mot de passe</Label>
               <div className="relative">
@@ -122,7 +246,7 @@ const Signup = () => {
                   type={showPassword ? "text" : "password"}
                   placeholder="Créer un mot de passe"
                   value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  onChange={handleInputChange}
                   required
                 />
                 <Button
@@ -135,8 +259,11 @@ const Signup = () => {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Au moins 8 caractères avec une majuscule et un chiffre
+              </p>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
               <div className="relative">
@@ -145,7 +272,7 @@ const Signup = () => {
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirmer votre mot de passe"
                   value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                  onChange={handleInputChange}
                   required
                 />
                 <Button
@@ -159,10 +286,10 @@ const Signup = () => {
                 </Button>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="terms" 
+              <Checkbox
+                id="terms"
                 checked={acceptTerms}
                 onCheckedChange={handleTermsChange}
               />
@@ -177,16 +304,16 @@ const Signup = () => {
                 </Link>
               </Label>
             </div>
-            
-            <Button 
-              type="submit" 
+
+            <Button
+              type="submit"
               className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
               disabled={isLoading}
             >
               {isLoading ? "Création du compte..." : "Créer mon compte"}
             </Button>
           </form>
-          
+
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Déjà un compte ?{" "}
