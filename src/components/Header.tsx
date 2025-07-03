@@ -76,12 +76,6 @@ const Header = () => {
       label: "Mes signalements", 
       icon: AlertTriangle,
       show: isLoggedIn && !isAdmin 
-    },
-    { 
-      to: "/notifications", 
-      label: "Notifications", 
-      icon: Bell,
-      show: isAdmin 
     }
   ];
 
@@ -115,12 +109,6 @@ const Header = () => {
       to: "/carte", 
       label: t('map') || "Carte", 
       icon: MapIcon,
-      show: isAdmin 
-    },
-    { 
-      to: "/notifications", 
-      label: "Notifications", 
-      icon: Bell,
       show: isAdmin 
     }
   ];
@@ -211,7 +199,7 @@ const Header = () => {
             {isLoggedIn ? (
               <>
                 {/* Notifications pour utilisateurs simples */}
-                {!isAdmin && (
+                {/* {!isAdmin && ( */}
                   <Button variant="ghost" size="icon" className="relative" asChild>
                     <Link to="/notifications">
                       <Bell className="h-5 w-5" />
@@ -220,7 +208,7 @@ const Header = () => {
                       </span>
                     </Link>
                   </Button>
-                )}
+                {/* )} */}
 
                 {/* User Menu */}
                 <DropdownMenu>
