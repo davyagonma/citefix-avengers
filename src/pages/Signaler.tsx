@@ -9,6 +9,10 @@ import { Camera, MapPin, Upload, Plus, X } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
+import { createSignalement } from "../lib/api";
+
+
+
 const Signaler = () => {
   const [formData, setFormData] = useState({
     title: "",
@@ -62,28 +66,73 @@ const Signaler = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setIsLoading(true);
     
-    // TODO: Implement report submission logic
-    console.log("Report submission:", { formData, photos });
+  //   // TODO: Implement report submission logic
+  //   console.log("Report submission:", { formData, photos });
     
-    setTimeout(() => {
-      setIsLoading(false);
-      alert("Signalement envoyé avec succès !");
-      // Reset form
-      setFormData({
-        title: "",
-        description: "",
-        category: "",
-        address: "",
-        coordinates: { lat: "", lng: "" }
-      });
-      setPhotos([]);
-    }, 2000);
-  };
+  //   setTimeout(() => {
+  //     setIsLoading(false);
+  //     alert("Signalement envoyé avec succès !");
+  //     // Reset form
+  //     setFormData({
+  //       title: "",
+  //       description: "",
+  //       category: "",
+  //       address: "",
+  //       coordinates: { lat: "", lng: "" }
+  //     });
+  //     setPhotos([]);
+  //   }, 2000);
+  // };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsLoading(true);
 
+  try {
+    const photosData = photos.map(p => ({
+      url: 'https://exemple.com/photo.jpg', // TODO: gérer upload réel si nécessaire
+      description: ''
+    }));
+
+    const signalementData = {
+      titre: formData.title,
+      description: formData.description,
+      categorie: formData.category,
+      localisation: {
+        adresse: formData.address,
+        coordonnees: {
+          type: 'Point',
+          coordinates: [
+            parseFloat(formData.coordinates.lng),
+            parseFloat(formData.coordinates.lat)
+          ]
+        }
+      },
+      signalePar: '662e31af9c114f33416c9a92', // TODO: Remplacer par l'ID dynamique de l'utilisateur connecté
+      photos: photosData
+    };
+
+    await createSignalement(signalementData);
+
+    alert('✅ Signalement envoyé avec succès');
+    setFormData({
+      title: "",
+      description: "",
+      category: "",
+      address: "",
+      coordinates: { lat: "", lng: "" }
+    });
+    setPhotos([]);
+  } catch (err: any) {
+    console.error(err);
+    alert(`❌ ${err.message}`);
+  } finally {
+    setIsLoading(false);
+  }
+};
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <Header />
