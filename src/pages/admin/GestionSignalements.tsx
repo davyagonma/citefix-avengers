@@ -1,5 +1,5 @@
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { fetchSignalements } from "../../lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,9 @@ import { Search, Filter, Eye, CheckCircle, XCircle, UserCheck, Download, MapPin,
 import Header from "@/components/Header";
 
 const GestionSignalements = () => {
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
@@ -23,62 +26,103 @@ const GestionSignalements = () => {
   const [validationDialogOpen, setValidationDialogOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<any>(null);
 
-  // Mock data for reports
-  const reports = [
-    {
-      id: "RPT-001",
-      title: "Nid de poule avenue Steinmetz",
-      description: "Gros nid de poule dangereux pour les véhicules",
-      category: "infrastructure",
-      status: "pending",
-      priority: "high",
-      reportedBy: "Jean Dupont",
-      reportedDate: "2024-01-15",
-      location: "Avenue Steinmetz, Cotonou",
-      coordinates: { lat: 6.3703, lng: 2.3912 },
-      photos: 2,
-      views: 45,
-      likes: 12,
-      assignedTo: null,
-      estimatedPoints: 50
-    },
-    {
-      id: "RPT-002",
-      title: "Éclairage public défaillant",
-      description: "Plusieurs lampadaires ne fonctionnent plus dans le quartier",
-      category: "lighting",
-      status: "in_progress",
-      priority: "medium",
-      reportedBy: "Marie Kone",
-      reportedDate: "2024-01-14",
-      location: "Quartier Agla, Cotonou",
-      coordinates: { lat: 6.3848, lng: 2.3888 },
-      photos: 3,
-      views: 32,
-      likes: 8,
-      assignedTo: "Équipe Électricité",
-      assignedDate: "2024-01-15",
-      estimatedPoints: 30
-    },
-    {
-      id: "RPT-003",
-      title: "Accumulation de déchets",
-      description: "Tas de déchets non collectés depuis une semaine",
-      category: "environment",
-      status: "resolved",
-      priority: "low",
-      reportedBy: "Paul Agbo",
-      reportedDate: "2024-01-13",
-      location: "Marché Dantokpa, Cotonou",
-      coordinates: { lat: 6.3550, lng: 2.4186 },
-      photos: 1,
-      views: 28,
-      likes: 5,
-      assignedTo: "Service Propreté",
-      resolvedDate: "2024-01-16",
-      pointsAwarded: 25
-    }
-  ];
+  useEffect(() => {
+    const loadReports = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetchSignalements();
+        setReports(res.data || []);
+      } catch (err: any) {
+        console.error(err);
+        setError("Impossible de charger les signalements");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadReports();
+  }, []);
+
+// import { useState } from "react";
+// import { Button } from "@/components/ui/button";
+// import { Input } from "@/components/ui/input";
+// import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// import { Badge } from "@/components/ui/badge";
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+// import { Textarea } from "@/components/ui/textarea";
+// import { Label } from "@/components/ui/label";
+// import { Search, Filter, Eye, CheckCircle, XCircle, UserCheck, Download, MapPin, Calendar, AlertTriangle } from "lucide-react";
+// import Header from "@/components/Header";
+
+// const GestionSignalements = () => {
+//   const [searchQuery, setSearchQuery] = useState("");
+//   const [filterStatus, setFilterStatus] = useState("all");
+//   const [filterPriority, setFilterPriority] = useState("all");
+//   const [filterCategory, setFilterCategory] = useState("all");
+//   const [selectedReports, setSelectedReports] = useState<string[]>([]);
+//   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+//   const [validationDialogOpen, setValidationDialogOpen] = useState(false);
+//   const [selectedReport, setSelectedReport] = useState<any>(null);
+
+//   // Mock data for reports
+//   const reports = [
+//     {
+//       id: "RPT-001",
+//       title: "Nid de poule avenue Steinmetz",
+//       description: "Gros nid de poule dangereux pour les véhicules",
+//       category: "infrastructure",
+//       status: "pending",
+//       priority: "high",
+//       reportedBy: "Jean Dupont",
+//       reportedDate: "2024-01-15",
+//       location: "Avenue Steinmetz, Cotonou",
+//       coordinates: { lat: 6.3703, lng: 2.3912 },
+//       photos: 2,
+//       views: 45,
+//       likes: 12,
+//       assignedTo: null,
+//       estimatedPoints: 50
+//     },
+//     {
+//       id: "RPT-002",
+//       title: "Éclairage public défaillant",
+//       description: "Plusieurs lampadaires ne fonctionnent plus dans le quartier",
+//       category: "lighting",
+//       status: "in_progress",
+//       priority: "medium",
+//       reportedBy: "Marie Kone",
+//       reportedDate: "2024-01-14",
+//       location: "Quartier Agla, Cotonou",
+//       coordinates: { lat: 6.3848, lng: 2.3888 },
+//       photos: 3,
+//       views: 32,
+//       likes: 8,
+//       assignedTo: "Équipe Électricité",
+//       assignedDate: "2024-01-15",
+//       estimatedPoints: 30
+//     },
+//     {
+//       id: "RPT-003",
+//       title: "Accumulation de déchets",
+//       description: "Tas de déchets non collectés depuis une semaine",
+//       category: "environment",
+//       status: "resolved",
+//       priority: "low",
+//       reportedBy: "Paul Agbo",
+//       reportedDate: "2024-01-13",
+//       location: "Marché Dantokpa, Cotonou",
+//       coordinates: { lat: 6.3550, lng: 2.4186 },
+//       photos: 1,
+//       views: 28,
+//       likes: 5,
+//       assignedTo: "Service Propreté",
+//       resolvedDate: "2024-01-16",
+//       pointsAwarded: 25
+//     }
+//   ];
 
   const technicians = [
     { id: "tech-001", name: "Équipe Infrastructure", speciality: "infrastructure" },
@@ -130,19 +174,31 @@ const GestionSignalements = () => {
     return categories[category as keyof typeof categories] || category;
   };
 
-  const filteredReports = reports.filter(report => {
-    const matchesSearch = 
-      report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.reportedBy.toLowerCase().includes(searchQuery.toLowerCase());
+  // const filteredReports = reports.filter(report => {
+  //   const matchesSearch = 
+  //     report.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //     report.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //     report.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //     report.reportedBy.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = filterStatus === "all" || report.status === filterStatus;
-    const matchesPriority = filterPriority === "all" || report.priority === filterPriority;
-    const matchesCategory = filterCategory === "all" || report.category === filterCategory;
+  //   const matchesStatus = filterStatus === "all" || report.status === filterStatus;
+  //   const matchesPriority = filterPriority === "all" || report.priority === filterPriority;
+  //   const matchesCategory = filterCategory === "all" || report.category === filterCategory;
 
-    return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
-  });
+  //   return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
+  // });
+const filteredReports = reports.filter((report) => {
+  const matchesSearch =
+    report.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    report.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    report.localisation.adresse.toLowerCase().includes(searchQuery.toLowerCase());
+
+  const matchesStatus = filterStatus === "all" || report.statut === filterStatus;
+  const matchesPriority = filterPriority === "all" || report.priorite === filterPriority;
+  const matchesCategory = filterCategory === "all" || report.categorie === filterCategory;
+
+  return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
+});
 
   const handleBulkAction = (action: string) => {
     console.log(`Bulk action: ${action} on reports:`, selectedReports);
@@ -178,6 +234,9 @@ const GestionSignalements = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestion des Signalements</h1>
           <p className="text-gray-600">Administration et suivi de tous les signalements</p>
         </div>
+
+        {loading && <p className="text-center text-gray-500">Chargement des signalements...</p>}
+        {error && <p className="text-center text-red-500">{error}</p>}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -346,24 +405,25 @@ const GestionSignalements = () => {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-semibold">{report.title}</div>
-                          <div className="text-sm text-gray-600">{getCategoryName(report.category)}</div>
-                          <div className="text-xs text-gray-500">ID: {report.id}</div>
+                          <div className="font-semibold">{report.titre}</div>
+                          <div className="text-sm text-gray-600">{getCategoryName(report.categorie)}</div>
+                          <div className="text-xs text-gray-500">ID: {report._id}</div>
                         </div>
                       </TableCell>
                       <TableCell>{report.reportedBy}</TableCell>
+                      {/* <TableCell>{report.signalePar.nom}</TableCell> */}
                       <TableCell>
                         <div className="flex items-center">
                           <MapPin className="h-3 w-3 mr-1" />
-                          {report.location}
+                          {report.localisation.adresse}
                         </div>
                       </TableCell>
-                      <TableCell>{getStatusBadge(report.status)}</TableCell>
-                      <TableCell>{getPriorityBadge(report.priority)}</TableCell>
+                      <TableCell>{getStatusBadge(report.statut)}</TableCell>
+                      <TableCell>{getPriorityBadge(report.priorite)}</TableCell>
                       <TableCell>
                         <div className="flex items-center text-sm">
                           <Calendar className="h-3 w-3 mr-1" />
-                          {new Date(report.reportedDate).toLocaleDateString()}
+                          {new Date(report.createdAt).toLocaleDateString()}
                         </div>
                       </TableCell>
                       <TableCell>
