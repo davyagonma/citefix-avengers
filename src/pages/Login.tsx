@@ -1,18 +1,19 @@
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
-import { toast } from "@/hooks/use-toast"; // Adaptez selon votre système de toast
+import { toast } from "@/hooks/use-toast";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,48 +21,15 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      interface LoginResponse {
-        token: string;
-        user: {
-          nom: string;
-          email: string;
-          prenom: string;
-          role: string;
-          _id: string;
-        };
-      }
-
-      const response = await axios.post<LoginResponse>("http://localhost:3000/api/auth/login", {
-        email,
-        password
-      });
-
-      // Stockage du token et des données utilisateur
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      localStorage.setItem('userId', response.data.user._id);
-
-      // Notification de succès
-      toast({
-        title: "Connexion réussie",
-        description: `Bienvenue, ${response.data.user.prenom} !`,
-      });
-
-      // Redirection après connexion
-      navigate("/profil"); // Adaptez selon votre besoin
-
-    } catch (error) {
-      let errorMessage = "Erreur lors de la connexion";
+      // Utiliser la fonction login du contexte AuthContext
+      await login({ email, password });
       
-      // if (axios.isAxiosError(error)) {
-      //   errorMessage = error.response?.data?.message || errorMessage;
-      // }
-
-      toast({
-        title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // Redirection après connexion réussie
+      navigate("/profil");
+      
+    } catch (error) {
+      // L'erreur est déjà gérée dans le contexte AuthContext
+      console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }

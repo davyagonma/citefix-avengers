@@ -1,18 +1,29 @@
-import { api } from '@/lib/api'; 
-const API_URL = 'http://localhost:3000/api/users';
-import axios from 'axios';
+import { api } from '@/lib/api';
+interface LoginResponse {
+  token: string;
+  user: {
+    _id: string;
+    email: string;
+    nom: string;
+    prenom: string;
+    role: 'user' | 'admin';
+    status: string;
+  };
+}
 
 export const AuthService = {
-  login: (credentials: { email: string; password: string }) => 
-    api.post('/users/login', credentials),
+  login: async (credentials: { email: string; password: string }): Promise<LoginResponse> => {
+    const response = await api.post<LoginResponse>('/auth/login', credentials);
+    return response.data;
+  },
 
-  signup: async (userData: {
+  signup: (userData: {
     email: string;
     password: string;
     nom: string;
     prenom: string;
     telephone: string;
-    role?: string;
+    role?: 'user' | 'admin';
     adresse?: {
       rue: string;
       quartier: string;
@@ -23,13 +34,18 @@ export const AuthService = {
         coordinates: number[];
       };
     };
-  }) => {
+  }) => api.post('/users', userData),
+  
+  logout: async (token: string): Promise<void> => {
     try {
-      const response = await axios.post(API_URL, userData);
-      return response.data;
+      await api.post('/auth/logout', {}, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
     } catch (error) {
-      console.error('Signup error:', error);
-      throw error;
+      console.error('Logout API error:', error);
+      // On continue quand même la déconnexion côté front
     }
-  },
-};  
+  }
+};
