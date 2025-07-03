@@ -67,6 +67,7 @@ export async function createSignalement(payload: any) {
   }
 
   if (!response.ok) {
+    console.error('Erreur API:', data);
     throw new Error(data?.message || 'Erreur lors de la création du signalement');
   }
 

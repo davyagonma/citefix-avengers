@@ -1,5 +1,6 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { UserService } from "@/services/userService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,9 +12,10 @@ import Footer from "@/components/Footer";
 
 import { createSignalement } from "../lib/api";
 
-
-
 const Signaler = () => {
+  const { toast } = useToast();
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -33,13 +35,74 @@ const Signaler = () => {
     { value: "autre", label: "Autre" }
   ];
 
+  // Récupérer l'utilisateur connecté au chargement
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        setIsLoadingUser(true);
+        
+        // Vérifier si l'utilisateur est connecté
+        const token = localStorage.getItem('token');
+        if (!token) {
+          toast({
+            title: "Authentification requise",
+            description: "Vous devez être connecté pour créer un signalement",
+            variant: "destructive"
+          });
+          // Rediriger vers la page de connexion
+          window.location.href = '/login';
+          return;
+        }
+
+        const userData = await UserService.getCurrentUser();
+        if (!userData) {
+          throw new Error('Impossible de récupérer les données utilisateur');
+        }
+
+        setCurrentUser(userData);
+        
+        toast({
+          title: "Bienvenue !",
+          description: `Bonjour ${userData.prenom || 'utilisateur'}, vous pouvez maintenant créer un signalement.`,
+        });
+
+      } catch (error) {
+        console.error('Erreur lors de la récupération de l\'utilisateur:', error);
+        
+        let errorMessage = "Impossible de récupérer les données utilisateur";
+        if (error.response?.status === 401) {
+          errorMessage = "Session expirée - Veuillez vous reconnecter";
+          window.location.href = '/login';
+        }
+
+        toast({
+          title: "Erreur",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+
+    fetchCurrentUser();
+  }, [toast]);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setPhotos(prev => [...prev, ...files].slice(0, 5)); // Max 5 photos
+    if (files.length + photos.length > 5) {
+      toast({
+        title: "Limite atteinte",
+        description: "Vous ne pouvez ajouter que 5 photos maximum",
+        variant: "destructive"
+      });
+      return;
+    }
+    setPhotos(prev => [...prev, ...files].slice(0, 5));
   };
 
   const removePhoto = (index: number) => {
@@ -47,92 +110,162 @@ const Signaler = () => {
   };
 
   const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setFormData(prev => ({
-            ...prev,
-            coordinates: {
-              lat: position.coords.latitude.toString(),
-              lng: position.coords.longitude.toString()
-            }
-          }));
-        },
-        (error) => {
-          console.error("Erreur de géolocalisation:", error);
-          alert("Impossible d'obtenir votre position");
+    if (!navigator.geolocation) {
+      toast({
+        title: "Géolocalisation non supportée",
+        description: "Votre navigateur ne supporte pas la géolocalisation",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    toast({
+      title: "Récupération de la position",
+      description: "Recherche de votre position en cours...",
+    });
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData(prev => ({
+          ...prev,
+          coordinates: {
+            lat: position.coords.latitude.toString(),
+            lng: position.coords.longitude.toString()
+          }
+        }));
+        
+        toast({
+          title: "Position récupérée",
+          description: "Votre position a été ajoutée au signalement",
+        });
+      },
+      (error) => {
+        console.error("Erreur de géolocalisation:", error);
+        let errorMessage = "Impossible d'obtenir votre position";
+        
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = "Permission de géolocalisation refusée";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = "Position indisponible";
+            break;
+          case error.TIMEOUT:
+            errorMessage = "Délai d'attente dépassé";
+            break;
         }
-      );
+        
+        toast({
+          title: "Erreur de géolocalisation",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!currentUser) {
+      toast({
+        title: "Erreur",
+        description: "Utilisateur non connecté",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Validation des champs requis
+      if (!formData.title.trim() || !formData.description.trim() || !formData.category || !formData.address.trim()) {
+        toast({
+          title: "Champs requis manquants",
+          description: "Veuillez remplir tous les champs obligatoires",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Préparation des données photos
+      const photosData = photos.map(p => ({
+        url: 'https://exemple.com/photo.jpg', // TODO: gérer upload réel si nécessaire
+        description: ''
+      }));
+
+      // Préparation des données du signalement
+      const signalementData = {
+        titre: formData.title.trim(),
+        description: formData.description.trim(),
+        categorie: formData.category,
+        localisation: {
+          adresse: formData.address.trim(),
+          coordonnees: formData.coordinates.lat && formData.coordinates.lng ? {
+            type: 'Point',
+            coordinates: [
+              parseFloat(formData.coordinates.lng),
+              parseFloat(formData.coordinates.lat)
+            ]
+          } : undefined
+        },
+        signalePar: currentUser._id || currentUser.id, // Utiliser l'ID de l'utilisateur connecté
+        photos: photosData
+      };
+
+      await createSignalement(signalementData);
+
+      toast({
+        title: "Signalement créé avec succès",
+        description: "Votre signalement a été enregistré et sera traité prochainement",
+      });
+
+      // Réinitialiser le formulaire
+      setFormData({
+        title: "",
+        description: "",
+        category: "",
+        address: "",
+        coordinates: { lat: "", lng: "" }
+      });
+      setPhotos([]);
+
+    } catch (err: any) {
+      console.error('Erreur lors de la création du signalement:', err);
+      
+      let errorMessage = "Une erreur est survenue lors de la création du signalement";
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setIsLoading(true);
-    
-  //   // TODO: Implement report submission logic
-  //   console.log("Report submission:", { formData, photos });
-    
-  //   setTimeout(() => {
-  //     setIsLoading(false);
-  //     alert("Signalement envoyé avec succès !");
-  //     // Reset form
-  //     setFormData({
-  //       title: "",
-  //       description: "",
-  //       category: "",
-  //       address: "",
-  //       coordinates: { lat: "", lng: "" }
-  //     });
-  //     setPhotos([]);
-  //   }, 2000);
-  // };
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsLoading(true);
-
-  try {
-    const photosData = photos.map(p => ({
-      url: 'https://exemple.com/photo.jpg', // TODO: gérer upload réel si nécessaire
-      description: ''
-    }));
-
-    const signalementData = {
-      titre: formData.title,
-      description: formData.description,
-      categorie: formData.category,
-      localisation: {
-        adresse: formData.address,
-        coordonnees: {
-          type: 'Point',
-          coordinates: [
-            parseFloat(formData.coordinates.lng),
-            parseFloat(formData.coordinates.lat)
-          ]
-        }
-      },
-      signalePar: '662e31af9c114f33416c9a92', // TODO: Remplacer par l'ID dynamique de l'utilisateur connecté
-      photos: photosData
-    };
-
-    await createSignalement(signalementData);
-
-    alert('✅ Signalement envoyé avec succès');
-    setFormData({
-      title: "",
-      description: "",
-      category: "",
-      address: "",
-      coordinates: { lat: "", lng: "" }
-    });
-    setPhotos([]);
-  } catch (err: any) {
-    console.error(err);
-    alert(`❌ ${err.message}`);
-  } finally {
-    setIsLoading(false);
+  // Afficher un loader pendant le chargement des données utilisateur
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8 flex justify-center items-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Chargement...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
-};
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <Header />
@@ -149,6 +282,11 @@ const handleSubmit = async (e: React.FormEvent) => {
             <p className="text-xl text-gray-600">
               Contribuez à améliorer votre ville en signalant les problèmes urbains
             </p>
+            {currentUser && (
+              <p className="text-sm text-gray-500 mt-2">
+                Connecté en tant que {currentUser.prenom} {currentUser.nom}
+              </p>
+            )}
           </div>
 
           <Card>
@@ -270,7 +408,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
-                  disabled={isLoading}
+                  disabled={isLoading || !currentUser}
                 >
                   {isLoading ? "Envoi en cours..." : "Envoyer le signalement"}
                 </Button>
