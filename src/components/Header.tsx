@@ -65,12 +65,12 @@ const Header = () => {
       icon: MapIcon,
       show: isLoggedIn && !isAdmin 
     },
-    { 
-      to: "/paiement", 
-      label: "Paiement", 
-      icon: CreditCard,
-      show: isLoggedIn && !isAdmin 
-    },
+    // { 
+    //   to: "/paiement", 
+    //   label: "Paiement", 
+    //   icon: CreditCard,
+    //   show: isLoggedIn && !isAdmin 
+    // },
     { 
       to: "/mes-signalements", 
       label: "Mes signalements", 
