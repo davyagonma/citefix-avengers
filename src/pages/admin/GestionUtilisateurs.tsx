@@ -81,6 +81,46 @@ const GestionUtilisateurs = () => {
     }
   }, [isAdmin]);
 
+  const handleUpdateUser = async (userId: string, updatedData: Partial<User>) => {
+    try {
+      const updatedUser = await UserService.updateUser(userId, updatedData);
+
+      setUsers(users.map(user =>
+        user._id === userId ? updatedUser : user
+      ));
+
+      toast({
+        title: "Succès",
+        description: "Utilisateur mis à jour avec succès",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await UserService.deleteUser(userId);
+
+      setUsers(users.filter(user => user._id !== userId));
+
+      toast({
+        title: "Succès",
+        description: "Utilisateur supprimé avec succès",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Fonction pour formater les données utilisateur
   const formatUserData = (user: User): FormattedUser => ({
     id: user._id,
@@ -561,6 +601,7 @@ const GestionUtilisateurs = () => {
                                 className="mt-1"
                               />
                             </div>
+
                             <Button
                               onClick={() => selectedUser && handleChangeRole(selectedUser.id, newRole, roleComment)}
                               className="w-full"
@@ -592,6 +633,20 @@ const GestionUtilisateurs = () => {
                           <UserCheck className="h-3 w-3" />
                         </Button>
                       )}
+
+                      <Button
+                        variant="outline"
+                        onClick={() => handleUpdateUser(user.id, { nom: 'Nouveau nom' })}
+                      >
+                        Mettre à jour
+                      </Button>
+
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleDeleteUser(user.id)}
+                      >
+                        Supprimer
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
