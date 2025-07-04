@@ -12,8 +12,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Search, Filter, Eye, CheckCircle, XCircle, UserCheck, Download, MapPin, Calendar, AlertTriangle } from "lucide-react";
 import Header from "@/components/Header";
+import { deleteSignalement, validateSignalement } from "../../lib/api";
+import { useNavigate } from "react-router-dom";
+
 
 const GestionSignalements = () => {
+  const navigate = useNavigate();
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -131,17 +135,17 @@ const GestionSignalements = () => {
     { id: "tech-004", name: "Équipe Sécurité", speciality: "security" }
   ];
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
+  const getStatusBadge = (statut: string) => {
+    switch (statut) {
+      case "en_attente":
         return <Badge className="bg-yellow-100 text-yellow-800">En attente</Badge>;
-      case "validated":
+      case "valide":
         return <Badge className="bg-blue-100 text-blue-800">Validé</Badge>;
-      case "in_progress":
+      case "en_cours":
         return <Badge className="bg-purple-100 text-purple-800">En cours</Badge>;
-      case "resolved":
+      case "resolu":
         return <Badge className="bg-green-100 text-green-800">Résolu</Badge>;
-      case "rejected":
+      case "rejete":
         return <Badge className="bg-red-100 text-red-800">Rejeté</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
@@ -152,11 +156,11 @@ const GestionSignalements = () => {
     switch (priority) {
       case "urgent":
         return <Badge variant="destructive">Urgent</Badge>;
-      case "high":
+      case "haute":
         return <Badge className="bg-orange-100 text-orange-800">Élevée</Badge>;
-      case "medium":
+      case "moyenne":
         return <Badge className="bg-blue-100 text-blue-800">Moyenne</Badge>;
-      case "low":
+      case "faible":
         return <Badge className="bg-gray-100 text-gray-800">Faible</Badge>;
       default:
         return <Badge variant="secondary">{priority}</Badge>;
@@ -173,6 +177,32 @@ const GestionSignalements = () => {
     };
     return categories[category as keyof typeof categories] || category;
   };
+
+const handleDelete = async (id: string) => {
+  if (confirm("Supprimer ce signalement ?")) {
+    try {
+      await deleteSignalement(id);
+      setReports(reports.filter(r => r._id !== id));
+      alert("Supprimé avec succès");
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la suppression");
+    }
+  }
+};
+
+const handleValidate = async (id: string, action: 'approve' | 'reject', comment: string) => {
+  try {
+    await validateSignalement(id, action, comment);
+    const updated = await fetchSignalements();
+    setReports(updated.data);
+    alert(`Signalement ${action === 'approve' ? 'validé' : 'rejeté'} avec succès`);
+  } catch (err) {
+    console.error(err);
+    alert("Erreur lors de la validation");
+  }
+};
+
 
   // const filteredReports = reports.filter(report => {
   //   const matchesSearch = 
@@ -222,9 +252,9 @@ const filteredReports = reports.filter((report) => {
     // TODO: Implement export functionality
   };
 
-  const pendingReports = filteredReports.filter(r => r.status === "pending");
-  const inProgressReports = filteredReports.filter(r => r.status === "in_progress");
-  const resolvedReports = filteredReports.filter(r => r.status === "resolved");
+  const pendingReports = filteredReports.filter(r => r.statut === "en_attente");
+  const inProgressReports = filteredReports.filter(r => r.statut === "en_cours");
+  const resolvedReports = filteredReports.filter(r => r.statut === "resolu");
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -410,8 +440,8 @@ const filteredReports = reports.filter((report) => {
                           <div className="text-xs text-gray-500">ID: {report._id}</div>
                         </div>
                       </TableCell>
-                      <TableCell>{report.reportedBy}</TableCell>
-                      {/* <TableCell>{report.signalePar.nom}</TableCell> */}
+                      {/* <TableCell>{report.reportedBy}</TableCell> */}
+                      <TableCell>{report.signalePar.nom}</TableCell>
                       <TableCell>
                         <div className="flex items-center">
                           <MapPin className="h-3 w-3 mr-1" />
@@ -428,11 +458,10 @@ const filteredReports = reports.filter((report) => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" onClick={() => navigate(`/signalements/${report._id}`)}>
                             <Eye className="h-3 w-3" />
                           </Button>
-                          
-                          {report.status === "pending" && (
+                          {report.statut === "en_attente" && (
                             <>
                               <Dialog open={validationDialogOpen} onOpenChange={setValidationDialogOpen}>
                                 <DialogTrigger asChild>
@@ -449,7 +478,7 @@ const filteredReports = reports.filter((report) => {
                                   <DialogHeader>
                                     <DialogTitle>Validation du Signalement</DialogTitle>
                                     <DialogDescription>
-                                      Valider ou rejeter le signalement "{selectedReport?.title}"
+                                      Valider ou rejeter le signalement "{selectedReport?.titre}"
                                     </DialogDescription>
                                   </DialogHeader>
                                   <div className="space-y-4">
@@ -462,19 +491,23 @@ const filteredReports = reports.filter((report) => {
                                       />
                                     </div>
                                     <div className="flex gap-2">
-                                      <Button 
-                                        onClick={() => handleValidateReport(selectedReport?.id, 'approve', '')}
-                                        className="bg-green-600"
-                                      >
-                                        Valider
+                                      <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleDelete(report._id)}>
+                                        Supprimer
                                       </Button>
-                                      <Button 
+
+                                      {/* <Button size="sm" className="bg-green-600" onClick={() => handleValidate(report._id, 'approve', '')}>
+                                        Valider
+                                      </Button> */}
+                                      <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleValidate(report._id, 'reject', '')}>
+                                        Rejeter
+                                      </Button>
+                                      {/* <Button 
                                         variant="outline"
                                         onClick={() => handleValidateReport(selectedReport?.id, 'reject', '')}
                                         className="text-red-600"
                                       >
                                         Rejeter
-                                      </Button>
+                                      </Button> */}
                                     </div>
                                   </div>
                                 </DialogContent>
@@ -495,7 +528,7 @@ const filteredReports = reports.filter((report) => {
                                   <DialogHeader>
                                     <DialogTitle>Assigner le Signalement</DialogTitle>
                                     <DialogDescription>
-                                      Assigner "{selectedReport?.title}" à une équipe
+                                      Assigner "{selectedReport?.titre}" à une équipe
                                     </DialogDescription>
                                   </DialogHeader>
                                   <div className="space-y-4">
@@ -542,7 +575,7 @@ const filteredReports = reports.filter((report) => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="pending">
+          <TabsContent value="en_attente">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -581,7 +614,7 @@ const filteredReports = reports.filter((report) => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="in_progress">
+          <TabsContent value="en_cours">
             <Card>
               <CardHeader>
                 <CardTitle>Signalements en Cours de Traitement</CardTitle>
@@ -595,7 +628,7 @@ const filteredReports = reports.filter((report) => {
                     <div key={report.id} className="border rounded-lg p-4">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <h3 className="font-semibold">{report.title}</h3>
+                          <h3 className="font-semibold">{report.titre}</h3>
                           <p className="text-gray-600 text-sm mt-1">{report.description}</p>
                           <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                             <span>Assigné à: {report.assignedTo}</span>
@@ -614,7 +647,7 @@ const filteredReports = reports.filter((report) => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="resolved">
+          <TabsContent value="resolu">
             <Card>
               <CardHeader>
                 <CardTitle>Signalements Résolus</CardTitle>

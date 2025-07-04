@@ -50,3 +50,27 @@ export async function fetchSignalements() {
   }
   return response.json(); // On suppose que backend répond { data: [...] }
 }
+
+export async function fetchSignalementById(id: string) {
+  const response = await fetch(`http://localhost:3000/api/signalements/${id}`);
+  if (!response.ok) throw new Error('Erreur de chargement');
+  return response.json();
+}
+
+export async function deleteSignalement(id: string) {
+  const response = await fetch(`http://localhost:3000/api/signalements/${id}`, {
+    method: 'DELETE'
+  });
+  if (!response.ok) throw new Error('Erreur suppression');
+  return response.json();
+}
+
+export async function validateSignalement(id: string, action: 'approve' | 'reject', comment: string) {
+  const res = await fetch(`http://localhost:3000/api/signalements/${id}/validate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, comment })
+  });
+  if (!res.ok) throw new Error('Erreur lors de la validation');
+  return res.json();
+}
