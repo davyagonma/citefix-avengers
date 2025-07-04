@@ -1,5 +1,6 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { UserService, User } from "@/services/userService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,98 +11,251 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
 import { Search, Eye, Edit, Ban, UserCheck, Download, Mail, Phone, Calendar, MapPin, Star, Trophy } from "lucide-react";
 import Header from "@/components/Header";
 
+// Interface pour typer les utilisateurs
+// (Utilisé depuis userService)
+
+interface FormattedUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  role: string;
+  status: string;
+  registrationDate: string;
+  lastLogin: string;
+  location: string;
+  totalReports: number;
+  resolvedReports: number;
+  totalPoints: number;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  speciality?: string;
+  suspendedReason?: string;
+  avatar?: string;
+}
+
 const GestionUtilisateurs = () => {
+  const { isAdmin, isLoading: authLoading } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<FormattedUser | null>(null);
   const [userDetailsOpen, setUserDetailsOpen] = useState(false);
   const [editRoleOpen, setEditRoleOpen] = useState(false);
+  const [newRole, setNewRole] = useState("");
+  const [roleComment, setRoleComment] = useState("");
 
-  // Mock data for users
-  const users = [
-    {
-      id: "user-001",
-      firstName: "Jean",
-      lastName: "Dupont",
-      email: "jean.dupont@email.com",
-      phone: "+229 12 34 56 78",
-      role: "citizen",
-      status: "active",
-      registrationDate: "2023-06-15",
-      lastLogin: "2024-01-15",
-      location: "Cotonou, Littoral",
-      totalReports: 23,
-      resolvedReports: 18,
-      totalPoints: 2450,
-      rank: "Citoyen Actif",
-      emailVerified: true,
-      phoneVerified: true,
-      avatar: null
-    },
-    {
-      id: "user-002",
-      firstName: "Marie",
-      lastName: "Kone",
-      email: "marie.kone@email.com",
-      phone: "+229 23 45 67 89",
-      role: "technician",
-      status: "active",
-      registrationDate: "2023-05-20",
-      lastLogin: "2024-01-14",
-      location: "Abomey-Calavi, Atlantique",
-      totalReports: 5,
-      resolvedReports: 89,
-      totalPoints: 890,
-      rank: "Technicien",
-      emailVerified: true,
-      phoneVerified: false,
-      speciality: "Infrastructure",
-      avatar: null
-    },
-    {
-      id: "user-003", 
-      firstName: "Paul",
-      lastName: "Agbo",
-      email: "paul.agbo@email.com",
-      phone: "+229 34 56 78 90",
-      role: "citizen",
-      status: "suspended",
-      registrationDate: "2023-08-10",
-      lastLogin: "2024-01-10",
-      location: "Porto-Novo, Ouémé",
-      totalReports: 12,
-      resolvedReports: 8,
-      totalPoints: 1200,
-      rank: "Citoyen",
-      emailVerified: true,
-      phoneVerified: true,
-      suspendedReason: "Signalements répétés de mauvaise qualité",
-      avatar: null
-    },
-    {
-      id: "user-004",
-      firstName: "Sophie",
-      lastName: "Mensah",
-      email: "sophie.mensah@admin.citefix.bj",
-      phone: "+229 45 67 89 01",
-      role: "admin",
-      status: "active",
-      registrationDate: "2023-01-01",
-      lastLogin: "2024-01-15",
-      location: "Cotonou, Littoral",
-      totalReports: 0,
-      resolvedReports: 0,
-      totalPoints: 0,
-      rank: "Administrateur",
-      emailVerified: true,
-      phoneVerified: true,
-      avatar: null
+  // Chargement des utilisateurs
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        setLoading(true);
+        const usersData = await UserService.getAllUsers();
+
+        // Validation supplémentaire
+        if (!usersData || !Array.isArray(usersData)) {
+          throw new Error('Les données reçues ne sont pas un tableau valide');
+        }
+
+        setUsers(usersData);
+        setError(null);
+      } catch (err) {
+        console.error('Erreur de chargement:', err);
+        setError(err.message);
+        setUsers([]); // Réinitialise à un tableau vide
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isAdmin) {
+      loadUsers();
     }
-  ];
+  }, [isAdmin]);
+
+  const handleUpdateUser = async (userId: string, updatedData: Partial<User>) => {
+    try {
+      const updatedUser = await UserService.updateUser(userId, updatedData);
+
+      setUsers(users.map(user =>
+        user._id === userId ? updatedUser : user
+      ));
+
+      toast({
+        title: "Succès",
+        description: "Utilisateur mis à jour avec succès",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await UserService.deleteUser(userId);
+
+      setUsers(users.filter(user => user._id !== userId));
+
+      toast({
+        title: "Succès",
+        description: "Utilisateur supprimé avec succès",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Fonction pour formater les données utilisateur
+  const formatUserData = (user: User): FormattedUser => ({
+    id: user._id,
+    firstName: user.prenom || 'Non spécifié',
+    lastName: user.nom || 'Non spécifié',
+    email: user.email,
+    phone: user.telephone || 'Non spécifié',
+    role: user.role || 'user',
+    status: user.status || 'active',
+    registrationDate: user.createdAt || new Date().toISOString(),
+    lastLogin: user.lastLogin || new Date().toISOString(),
+    location: user.adresse?.ville || 'Non spécifié',
+    totalReports: user.totalReports || 0,
+    resolvedReports: user.resolvedReports || 0,
+    totalPoints: user.totalPoints || 0,
+    emailVerified: user.emailVerified || false,
+    phoneVerified: user.phoneVerified || false,
+    speciality: user.specialite,
+    suspendedReason: user.suspendedReason
+  });
+
+  // Gestion du changement de rôle
+  const handleChangeRole = async (userId: string, newRole: string, comment: string) => {
+    try {
+      await UserService.changeUserRole(userId, newRole);
+      setUsers(users.map(user =>
+        user._id === userId ? { ...user, role: newRole } : user
+      ));
+      toast({
+        title: "Succès",
+        description: "Rôle utilisateur mis à jour",
+      });
+    } catch (err) {
+      toast({
+        title: "Erreur",
+        description: "Échec de la mise à jour du rôle",
+        variant: "destructive",
+      });
+    }
+    setEditRoleOpen(false);
+    setRoleComment("");
+  };
+
+  // Gestion du changement de statut
+  const handleChangeStatus = async (userId: string, newStatus: string, reason?: string) => {
+    try {
+      await UserService.changeUserStatus(userId, newStatus);
+      setUsers(users.map(user =>
+        user._id === userId ? { ...user, status: newStatus } : user
+      ));
+      toast({
+        title: "Succès",
+        description: "Statut utilisateur mis à jour",
+      });
+    } catch (err) {
+      toast({
+        title: "Erreur",
+        description: "Échec de la mise à jour du statut",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Fonction d'export
+  const exportUsers = () => {
+    const formattedUsers = users.map(formatUserData);
+    const csvContent = [
+      ['ID', 'Prénom', 'Nom', 'Email', 'Téléphone', 'Rôle', 'Statut', 'Date inscription', 'Dernière connexion', 'Localisation'].join(','),
+      ...formattedUsers.map(user => [
+        user.id,
+        user.firstName,
+        user.lastName,
+        user.email,
+        user.phone,
+        user.role,
+        user.status,
+        new Date(user.registrationDate).toLocaleDateString(),
+        new Date(user.lastLogin).toLocaleDateString(),
+        user.location
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'utilisateurs.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Attendre que l'authentification soit vérifiée
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // Vérifier les droits d'accès après le chargement de l'authentification
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h2 className="text-xl font-bold">Accès refusé</h2>
+          <p>Vous n'avez pas les droits nécessaires pour accéder à cette page.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center text-red-500">
+          <h2 className="text-xl font-bold">Erreur</h2>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Formatage des données pour l'affichage
+  const formattedUsers = users.map(formatUserData);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -131,8 +285,8 @@ const GestionUtilisateurs = () => {
     }
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = 
+  const filteredUsers = formattedUsers.filter(user => {
+    const matchesSearch =
       user.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -145,28 +299,12 @@ const GestionUtilisateurs = () => {
   });
 
   const stats = {
-    total: users.length,
-    active: users.filter(u => u.status === "active").length,
-    suspended: users.filter(u => u.status === "suspended").length,
-    citizens: users.filter(u => u.role === "citizen").length,
-    technicians: users.filter(u => u.role === "technician").length,
-    admins: users.filter(u => u.role === "admin").length
-  };
-
-  const handleChangeRole = (userId: string, newRole: string, comment: string) => {
-    console.log(`Change role for user ${userId} to ${newRole} with comment:`, comment);
-    setEditRoleOpen(false);
-    // TODO: Implement role change logic
-  };
-
-  const handleChangeStatus = (userId: string, newStatus: string, reason?: string) => {
-    console.log(`Change status for user ${userId} to ${newStatus} with reason:`, reason);
-    // TODO: Implement status change logic
-  };
-
-  const exportUsers = () => {
-    console.log("Exporting users...");
-    // TODO: Implement export functionality
+    total: formattedUsers.length,
+    active: formattedUsers.filter(u => u.status === "active").length,
+    suspended: formattedUsers.filter(u => u.status === "suspended").length,
+    citizens: formattedUsers.filter(u => u.role === "citizen").length,
+    technicians: formattedUsers.filter(u => u.role === "technician").length,
+    admins: formattedUsers.filter(u => u.role === "admin").length
   };
 
   return (
@@ -231,7 +369,7 @@ const GestionUtilisateurs = () => {
                   className="pl-10"
                 />
               </div>
-              
+
               <div className="flex gap-2">
                 <Select value={filterRole} onValueChange={setFilterRole}>
                   <SelectTrigger className="w-40">
@@ -338,11 +476,10 @@ const GestionUtilisateurs = () => {
                         Inscrit: {new Date(user.registrationDate).toLocaleDateString()}
                       </div>
                       <div className="flex items-center">
-                        <span className={`h-2 w-2 rounded-full mr-2 ${
-                          new Date(user.lastLogin).getTime() > Date.now() - 24*60*60*1000 
-                            ? "bg-green-500" 
-                            : "bg-gray-300"
-                        }`}></span>
+                        <span className={`h-2 w-2 rounded-full mr-2 ${new Date(user.lastLogin).getTime() > Date.now() - 24 * 60 * 60 * 1000
+                          ? "bg-green-500"
+                          : "bg-gray-300"
+                          }`}></span>
                         Dernière connexion: {new Date(user.lastLogin).toLocaleDateString()}
                       </div>
                     </div>
@@ -375,10 +512,10 @@ const GestionUtilisateurs = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Dialog open={userDetailsOpen} onOpenChange={setUserDetailsOpen}>
+                      <Dialog open={userDetailsOpen && selectedUser?.id === user.id} onOpenChange={setUserDetailsOpen}>
                         <DialogTrigger asChild>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => setSelectedUser(user)}
                           >
@@ -419,12 +556,15 @@ const GestionUtilisateurs = () => {
                         </DialogContent>
                       </Dialog>
 
-                      <Dialog open={editRoleOpen} onOpenChange={setEditRoleOpen}>
+                      <Dialog open={editRoleOpen && selectedUser?.id === user.id} onOpenChange={setEditRoleOpen}>
                         <DialogTrigger asChild>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
-                            onClick={() => setSelectedUser(user)}
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setNewRole(user.role);
+                            }}
                             className="text-blue-600"
                           >
                             <Edit className="h-3 w-3" />
@@ -440,7 +580,7 @@ const GestionUtilisateurs = () => {
                           <div className="space-y-4">
                             <div>
                               <Label htmlFor="role">Nouveau rôle</Label>
-                              <Select defaultValue={selectedUser?.role}>
+                              <Select value={newRole} onValueChange={setNewRole}>
                                 <SelectTrigger>
                                   <SelectValue />
                                 </SelectTrigger>
@@ -453,14 +593,17 @@ const GestionUtilisateurs = () => {
                             </div>
                             <div>
                               <Label htmlFor="roleComment">Commentaire</Label>
-                              <Textarea 
+                              <Textarea
                                 id="roleComment"
                                 placeholder="Raison du changement de rôle..."
+                                value={roleComment}
+                                onChange={(e) => setRoleComment(e.target.value)}
                                 className="mt-1"
                               />
                             </div>
-                            <Button 
-                              onClick={() => handleChangeRole(selectedUser?.id, 'technician', '')}
+
+                            <Button
+                              onClick={() => selectedUser && handleChangeRole(selectedUser.id, newRole, roleComment)}
                               className="w-full"
                             >
                               Confirmer le changement
@@ -470,8 +613,8 @@ const GestionUtilisateurs = () => {
                       </Dialog>
 
                       {user.status === "active" && (
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline"
                           onClick={() => handleChangeStatus(user.id, 'suspended')}
                           className="text-yellow-600"
@@ -481,8 +624,8 @@ const GestionUtilisateurs = () => {
                       )}
 
                       {user.status === "suspended" && (
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline"
                           onClick={() => handleChangeStatus(user.id, 'active')}
                           className="text-green-600"
@@ -490,6 +633,20 @@ const GestionUtilisateurs = () => {
                           <UserCheck className="h-3 w-3" />
                         </Button>
                       )}
+
+                      <Button
+                        variant="outline"
+                        onClick={() => handleUpdateUser(user.id, { nom: 'Nouveau nom' })}
+                      >
+                        Mettre à jour
+                      </Button>
+
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleDeleteUser(user.id)}
+                      >
+                        Supprimer
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
