@@ -18,10 +18,10 @@ import Notifications from "./pages/Notifications";
 import AdminDashboard from "./pages/admin/Dashboard";
 import GestionSignalements from "./pages/admin/GestionSignalements";
 import GestionUtilisateurs from "./pages/admin/GestionUtilisateurs";
+import SignalementDetail from "./pages/SignalementDetail";
 import NotFound from "./pages/NotFound";
 import { ToastProvider } from "@/components/ui/toast";
 import { ToastViewport } from "@/components/ui/toast";
-import SignalementDetail from "./pages/SignalementDetail";
 
 const queryClient = new QueryClient();
 
@@ -46,8 +46,8 @@ const App = () => (
                 <Route path="/a-propos" element={<APropos />} />
                 <Route path="/paiement" element={<Paiement />} />
                 <Route path="/mes-signalements" element={<MesSignalements />} />
-                <Route path="/signalements/:id" element={<SignalementDetail />} />
                 <Route path="/notifications" element={<Notifications />} />
+                <Route path="/SignalementDetail" element={<SignalementDetail />} />
                 {/*<Route path="*" element={<NotFound />} />*/}
               </Routes>
             </BrowserRouter>

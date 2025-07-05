@@ -72,6 +72,12 @@ const Header = () => {
     //   show: isLoggedIn && !isAdmin 
     // },
     { 
+      to: "/SignalementDetail",
+      label: "Détails du signalement", 
+      icon: AlertTriangle,
+      show: isLoggedIn && !isAdmin  
+    },
+    { 
       to: "/mes-signalements", 
       label: "Mes signalements", 
       icon: AlertTriangle,
@@ -88,15 +94,21 @@ const Header = () => {
       show: isAdmin 
     },
     { 
+      to: "/admin/utilisateurs", 
+      label: "Utilisateurs", 
+      icon: Users,
+      show: isAdmin 
+    },
+    { 
       to: "/admin/signalements", 
       label: "Signalements", 
       icon: AlertTriangle,
       show: isAdmin 
     },
     { 
-      to: "/admin/utilisateurs", 
-      label: "Utilisateurs", 
-      icon: Users,
+      to: "/SignalementDetail",
+      label: "Détails du signalement", 
+      icon: AlertTriangle,
       show: isAdmin 
     },
     { 
@@ -194,7 +206,7 @@ const Header = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
-           {/*  <LanguageSelector /> */}
+            <LanguageSelector />
 
             {isLoggedIn ? (
               <>
