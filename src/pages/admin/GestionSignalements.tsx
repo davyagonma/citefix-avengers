@@ -47,86 +47,6 @@ const GestionSignalements = () => {
     loadReports();
   }, []);
 
-// import { useState } from "react";
-// import { Button } from "@/components/ui/button";
-// import { Input } from "@/components/ui/input";
-// import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-// import { Badge } from "@/components/ui/badge";
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-// import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-// import { Textarea } from "@/components/ui/textarea";
-// import { Label } from "@/components/ui/label";
-// import { Search, Filter, Eye, CheckCircle, XCircle, UserCheck, Download, MapPin, Calendar, AlertTriangle } from "lucide-react";
-// import Header from "@/components/Header";
-
-// const GestionSignalements = () => {
-//   const [searchQuery, setSearchQuery] = useState("");
-//   const [filterStatus, setFilterStatus] = useState("all");
-//   const [filterPriority, setFilterPriority] = useState("all");
-//   const [filterCategory, setFilterCategory] = useState("all");
-//   const [selectedReports, setSelectedReports] = useState<string[]>([]);
-//   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-//   const [validationDialogOpen, setValidationDialogOpen] = useState(false);
-//   const [selectedReport, setSelectedReport] = useState<any>(null);
-
-//   // Mock data for reports
-//   const reports = [
-//     {
-//       id: "RPT-001",
-//       title: "Nid de poule avenue Steinmetz",
-//       description: "Gros nid de poule dangereux pour les véhicules",
-//       category: "infrastructure",
-//       status: "pending",
-//       priority: "high",
-//       reportedBy: "Jean Dupont",
-//       reportedDate: "2024-01-15",
-//       location: "Avenue Steinmetz, Cotonou",
-//       coordinates: { lat: 6.3703, lng: 2.3912 },
-//       photos: 2,
-//       views: 45,
-//       likes: 12,
-//       assignedTo: null,
-//       estimatedPoints: 50
-//     },
-//     {
-//       id: "RPT-002",
-//       title: "Éclairage public défaillant",
-//       description: "Plusieurs lampadaires ne fonctionnent plus dans le quartier",
-//       category: "lighting",
-//       status: "in_progress",
-//       priority: "medium",
-//       reportedBy: "Marie Kone",
-//       reportedDate: "2024-01-14",
-//       location: "Quartier Agla, Cotonou",
-//       coordinates: { lat: 6.3848, lng: 2.3888 },
-//       photos: 3,
-//       views: 32,
-//       likes: 8,
-//       assignedTo: "Équipe Électricité",
-//       assignedDate: "2024-01-15",
-//       estimatedPoints: 30
-//     },
-//     {
-//       id: "RPT-003",
-//       title: "Accumulation de déchets",
-//       description: "Tas de déchets non collectés depuis une semaine",
-//       category: "environment",
-//       status: "resolved",
-//       priority: "low",
-//       reportedBy: "Paul Agbo",
-//       reportedDate: "2024-01-13",
-//       location: "Marché Dantokpa, Cotonou",
-//       coordinates: { lat: 6.3550, lng: 2.4186 },
-//       photos: 1,
-//       views: 28,
-//       likes: 5,
-//       assignedTo: "Service Propreté",
-//       resolvedDate: "2024-01-16",
-//       pointsAwarded: 25
-//     }
-//   ];
 
   const technicians = [
     { id: "tech-001", name: "Équipe Infrastructure", speciality: "infrastructure" },
@@ -203,20 +123,6 @@ const handleValidate = async (id: string, action: 'approve' | 'reject', comment:
   }
 };
 
-
-  // const filteredReports = reports.filter(report => {
-  //   const matchesSearch = 
-  //     report.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //     report.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //     report.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //     report.reportedBy.toLowerCase().includes(searchQuery.toLowerCase());
-
-  //   const matchesStatus = filterStatus === "all" || report.status === filterStatus;
-  //   const matchesPriority = filterPriority === "all" || report.priority === filterPriority;
-  //   const matchesCategory = filterCategory === "all" || report.category === filterCategory;
-
-  //   return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
-  // });
 const filteredReports = reports.filter((report) => {
   const matchesSearch =
     report.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -687,3 +593,4 @@ const filteredReports = reports.filter((report) => {
 };
 
 export default GestionSignalements;
+  
